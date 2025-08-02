@@ -1,12 +1,15 @@
 import Stripe from "stripe";
 import { v2 as cloudinary } from "cloudinary";
 
+
 // Configuração Cloudinary (no topo)
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+export const runtime = "nodejs";
+
 
 export async function POST(req) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
