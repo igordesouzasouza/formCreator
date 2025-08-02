@@ -171,7 +171,8 @@ export default function FormCreator() {
               required
             />
           </div>
-
+          {/* //colocar o texto de apenas um clique no botão abaixo para criar o produto e aguarde a resposta! */}
+          <p className="text-center text-sm text-gray-700">De APENAS UM clique no botão abaixo para criar o produto e aguarde a resposta!</p>
           <Button
             className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg w-full"
             type="submit"
