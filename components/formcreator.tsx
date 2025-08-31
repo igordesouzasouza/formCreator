@@ -4,13 +4,38 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useState } from "react";
 
-const categorias = ["Vestidos", "Alfaiataria", "Camisetas", "Decotes"];
+const categorias = [
+  "Vestidos",
+  "Camisetes",
+  "Blusas",
+  "Saias",
+  "Bermudas",
+  "Blazer",
+  "Calça",
+  "Colete",
+];
 
 const medidasPorCategoria: Record<string, string[]> = {
-  Vestidos: ["busto", "torax", "comprimento"],
-  Camisetas: ["busto", "comprimento"],
-  Alfaiataria: ["busto", "comprimento"],
-  Decotes: ["busto", "comprimento"],
+  Vestidos: [
+    "busto",
+    "cintura",
+    "quadril",
+    "comprimento total",
+    "ombro a ombro",
+  ],
+  Camisetes: ["busto", "comprimento", "ombro a ombro", "manga"],
+  Blusas: ["busto", "comprimento", "ombro a ombro", "manga"],
+  Saias: ["cintura", "quadril", "comprimento"],
+  Bermudas: ["cintura", "quadril", "comprimento", "abertura da perna"],
+  Blazer: ["busto", "cintura", "comprimento total", "ombro a ombro", "manga"],
+  Calça: [
+    "cintura",
+    "quadril",
+    "comprimento total",
+    "entrepernas",
+    "abertura da perna",
+  ],
+  Colete: ["busto", "cintura", "comprimento total", "ombro a ombro"],
 };
 
 type FormType = {
@@ -20,7 +45,7 @@ type FormType = {
   estoque: string;
   categoria: string;
   foto: File | null;
-  medidas: Record<string, string>; // <- novo
+  medidas: Record<string, string>; //
 };
 
 export default function FormCreator() {
@@ -103,12 +128,17 @@ export default function FormCreator() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      <h1 className="text-4xl font-bold mb-6 text-center">Criador de Produto</h1>
+      <h1 className="text-4xl font-bold mb-6 text-center">
+        Criador de Produto
+      </h1>
 
       <div className="w-full flex justify-center px-4">
         <form className="w-full max-w-md space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="name"
+            >
               Nome do Produto
             </label>
             <Input
@@ -121,7 +151,10 @@ export default function FormCreator() {
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="description">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="description"
+            >
               Descrição do Produto
             </label>
             <Input
@@ -134,7 +167,10 @@ export default function FormCreator() {
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="price">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="price"
+            >
               Preço do Produto (centavos)
             </label>
             <Input
@@ -148,7 +184,10 @@ export default function FormCreator() {
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="estoque">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="estoque"
+            >
               Estoque
             </label>
             <Input
@@ -162,7 +201,10 @@ export default function FormCreator() {
           </div>
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="categoria">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="categoria"
+            >
               Categoria
             </label>
             <select
@@ -187,7 +229,10 @@ export default function FormCreator() {
               <h2 className="text-gray-700 font-semibold">Medidas</h2>
               {medidasAtuais.map((medida) => (
                 <div key={medida}>
-                  <label className="block text-gray-700 text-sm mb-1" htmlFor={`medida_${medida}`}>
+                  <label
+                    className="block text-gray-700 text-sm mb-1"
+                    htmlFor={`medida_${medida}`}
+                  >
                     {medida.charAt(0).toUpperCase() + medida.slice(1)}
                   </label>
                   <Input
@@ -204,7 +249,10 @@ export default function FormCreator() {
           )}
 
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="foto">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="foto"
+            >
               Foto do Produto
             </label>
             <input
@@ -218,7 +266,8 @@ export default function FormCreator() {
           </div>
 
           <p className="text-center text-sm text-gray-700">
-            De APENAS UM clique no botão abaixo para criar o produto e aguarde a resposta!
+            De APENAS UM clique no botão abaixo para criar o produto e aguarde a
+            resposta!
           </p>
           <Button
             className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg w-full"
