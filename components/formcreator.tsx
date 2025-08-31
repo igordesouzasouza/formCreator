@@ -6,6 +6,13 @@ import { useState } from "react";
 
 const categorias = ["Vestidos", "Alfaiataria", "Camisetas", "Decotes"];
 
+const medidasPorCategoria: Record<string, string[]> = {
+  Vestidos: ["busto", "torax", "comprimento"],
+  Camisetas: ["busto", "comprimento"],
+  Alfaiataria: ["busto", "comprimento"],
+  Decotes: ["busto", "comprimento"],
+};
+
 type FormType = {
   name: string;
   description: string;
@@ -13,6 +20,7 @@ type FormType = {
   estoque: string;
   categoria: string;
   foto: File | null;
+  medidas: Record<string, string>; // <- novo
 };
 
 export default function FormCreator() {
@@ -23,6 +31,7 @@ export default function FormCreator() {
     estoque: "",
     categoria: "",
     foto: null,
+    medidas: {},
   });
   const [msg, setMsg] = useState("");
 
@@ -32,6 +41,12 @@ export default function FormCreator() {
     const { name, value, files } = e.target as HTMLInputElement;
     if (name === "foto") {
       setForm({ ...form, foto: files ? files[0] : null });
+    } else if (name.startsWith("medida_")) {
+      const medidaNome = name.replace("medida_", "");
+      setForm({
+        ...form,
+        medidas: { ...form.medidas, [medidaNome]: value },
+      });
     } else {
       setForm({ ...form, [name]: value });
     }
@@ -48,6 +63,11 @@ export default function FormCreator() {
     formData.append("estoque", form.estoque);
     formData.append("categoria", form.categoria);
     if (form.foto) formData.append("foto", form.foto);
+
+    // adiciona as medidas como metadados
+    Object.entries(form.medidas).forEach(([key, value]) => {
+      formData.append(`medidas[${key}]`, value);
+    });
 
     const res = await fetch("/api/products/create", {
       method: "POST",
@@ -75,8 +95,11 @@ export default function FormCreator() {
       estoque: "",
       categoria: "",
       foto: null,
+      medidas: {},
     });
   };
+
+  const medidasAtuais = medidasPorCategoria[form.categoria] || [];
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
@@ -158,6 +181,28 @@ export default function FormCreator() {
             </select>
           </div>
 
+          {/* Inputs dinâmicos para medidas */}
+          {medidasAtuais.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-gray-700 font-semibold">Medidas</h2>
+              {medidasAtuais.map((medida) => (
+                <div key={medida}>
+                  <label className="block text-gray-700 text-sm mb-1" htmlFor={`medida_${medida}`}>
+                    {medida.charAt(0).toUpperCase() + medida.slice(1)}
+                  </label>
+                  <Input
+                    name={`medida_${medida}`}
+                    type="text"
+                    value={form.medidas[medida] || ""}
+                    onChange={handleChange}
+                    placeholder={`Informe ${medida}`}
+                    required
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="foto">
               Foto do Produto
@@ -171,8 +216,10 @@ export default function FormCreator() {
               required
             />
           </div>
-          {/* //colocar o texto de apenas um clique no botão abaixo para criar o produto e aguarde a resposta! */}
-          <p className="text-center text-sm text-gray-700">De APENAS UM clique no botão abaixo para criar o produto e aguarde a resposta!</p>
+
+          <p className="text-center text-sm text-gray-700">
+            De APENAS UM clique no botão abaixo para criar o produto e aguarde a resposta!
+          </p>
           <Button
             className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg w-full"
             type="submit"
