@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "./ui/dialog";
+import { X, Plus } from "lucide-react";
 
 const categorias = [
   "Vestidos",
@@ -16,27 +18,17 @@ const categorias = [
 ];
 
 const medidasPorCategoria: Record<string, string[]> = {
-  Vestidos: [
-    "busto",
-    "cintura",
-    "quadril",
-    "comprimento total",
-    "ombro a ombro",
-  ],
+  Vestidos: ["busto", "cintura", "quadril", "comprimento total", "ombro a ombro"],
   Camisetes: ["busto", "comprimento", "ombro a ombro", "manga"],
   Blusas: ["busto", "comprimento", "ombro a ombro", "manga"],
   Saias: ["cintura", "quadril", "comprimento"],
   Bermudas: ["cintura", "quadril", "comprimento", "abertura da perna"],
   Blazer: ["busto", "cintura", "comprimento total", "ombro a ombro", "manga"],
-  Calça: [
-    "cintura",
-    "quadril",
-    "comprimento total",
-    "entrepernas",
-    "abertura da perna",
-  ],
+  Calça: ["cintura", "quadril", "comprimento total", "entrepernas", "abertura da perna"],
   Colete: ["busto", "cintura", "comprimento total", "ombro a ombro"],
 };
+
+const tamanhos = ["PP", "P", "M", "G", "GG"];
 
 type FormType = {
   name: string;
@@ -45,7 +37,7 @@ type FormType = {
   estoque: string;
   categoria: string;
   foto: File | null;
-  medidas: Record<string, string>; //
+  medidas: Record<string, Record<string, string>>;
 };
 
 export default function FormCreator() {
@@ -58,23 +50,60 @@ export default function FormCreator() {
     foto: null,
     medidas: {},
   });
+
   const [msg, setMsg] = useState("");
+  const [tamanhoAberto, setTamanhoAberto] = useState<string | null>(null);
+  const [medidasExtras, setMedidasExtras] = useState<Record<string, string[]>>({});
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [novaMedida, setNovaMedida] = useState("");
+  const [tamanhoSelecionado, setTamanhoSelecionado] = useState<string | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, files } = e.target as HTMLInputElement;
+
     if (name === "foto") {
       setForm({ ...form, foto: files ? files[0] : null });
     } else if (name.startsWith("medida_")) {
-      const medidaNome = name.replace("medida_", "");
-      setForm({
-        ...form,
-        medidas: { ...form.medidas, [medidaNome]: value },
-      });
+      const [_, tamanho, medida] = name.split("_");
+      setForm((prev) => ({
+        ...prev,
+        medidas: {
+          ...prev.medidas,
+          [tamanho]: { ...prev.medidas[tamanho], [medida]: value },
+        },
+      }));
     } else {
       setForm({ ...form, [name]: value });
     }
+  };
+
+  const toggleTamanho = (tamanho: string) => {
+    setTamanhoAberto(tamanhoAberto === tamanho ? null : tamanho);
+  };
+
+  const addMedida = () => {
+    if (!novaMedida.trim() || !tamanhoSelecionado) return;
+    setMedidasExtras((prev) => ({
+      ...prev,
+      [tamanhoSelecionado]: [...(prev[tamanhoSelecionado] || []), novaMedida.trim()],
+    }));
+    setNovaMedida("");
+    setDialogOpen(false);
+  };
+
+  const removeMedida = (tamanho: string, medida: string) => {
+    setMedidasExtras((prev) => ({
+      ...prev,
+      [tamanho]: (prev[tamanho] || []).filter((m) => m !== medida),
+    }));
+
+    setForm((prev) => {
+      const novo = { ...prev.medidas };
+      delete novo[tamanho]?.[medida];
+      return { ...prev, medidas: novo };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -89,9 +118,10 @@ export default function FormCreator() {
     formData.append("categoria", form.categoria);
     if (form.foto) formData.append("foto", form.foto);
 
-    // adiciona as medidas como metadados
-    Object.entries(form.medidas).forEach(([key, value]) => {
-      formData.append(`medidas[${key}]`, value);
+    Object.entries(form.medidas).forEach(([tamanho, medidas]) => {
+      Object.entries(medidas).forEach(([medida, valor]) => {
+        formData.append(`medidas[${tamanho}_${medida}]`, valor);
+      });
     });
 
     const res = await fetch("/api/products/create", {
@@ -102,7 +132,7 @@ export default function FormCreator() {
     let data;
     try {
       data = await res.json();
-    } catch (e) {
+    } catch {
       setMsg("Erro inesperado no servidor");
       return;
     }
@@ -122,163 +152,151 @@ export default function FormCreator() {
       foto: null,
       medidas: {},
     });
+    setTamanhoAberto(null);
+    setMedidasExtras({});
   };
 
   const medidasAtuais = medidasPorCategoria[form.categoria] || [];
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-      <h1 className="text-4xl font-bold mb-6 text-center">
-        Criador de Produto
-      </h1>
+      <h1 className="text-4xl font-bold mb-6 text-center">Criador de Produto</h1>
 
       <div className="w-full flex justify-center px-4">
         <form className="w-full max-w-md space-y-4" onSubmit={handleSubmit}>
+          {/* Nome, descrição, preço, estoque, categoria */}
           <div>
-            <label
-              className="block text-gray-700 text-sm font-bold mb-2"
-              htmlFor="name"
-            >
-              Nome do Produto
-            </label>
-            <Input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Nome do produto"
-              required
-            />
+            <label className="block text-gray-700 text-sm font-bold mb-2">Nome do Produto</label>
+            <Input name="name" value={form.name} onChange={handleChange} placeholder="Nome do produto" required />
           </div>
 
           <div>
-            <label
-              className="block text-gray-700 text-sm font-bold mb-2"
-              htmlFor="description"
-            >
-              Descrição do Produto
-            </label>
-            <Input
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              placeholder="Descrição"
-              required
-            />
+            <label className="block text-gray-700 text-sm font-bold mb-2">Descrição do Produto</label>
+            <Input name="description" value={form.description} onChange={handleChange} placeholder="Descrição" required />
           </div>
 
           <div>
-            <label
-              className="block text-gray-700 text-sm font-bold mb-2"
-              htmlFor="price"
-            >
-              Preço do Produto (centavos)
-            </label>
-            <Input
-              name="price"
-              type="number"
-              value={form.price}
-              onChange={handleChange}
-              placeholder="Preço em centavos"
-              required
-            />
+            <label className="block text-gray-700 text-sm font-bold mb-2">Preço (centavos)</label>
+            <Input type="number" name="price" value={form.price} onChange={handleChange} placeholder="Preço em centavos" required />
           </div>
 
           <div>
-            <label
-              className="block text-gray-700 text-sm font-bold mb-2"
-              htmlFor="estoque"
-            >
-              Estoque
-            </label>
-            <Input
-              name="estoque"
-              type="number"
-              value={form.estoque}
-              onChange={handleChange}
-              placeholder="Estoque"
-              required
-            />
+            <label className="block text-gray-700 text-sm font-bold mb-2">Estoque</label>
+            <Input type="number" name="estoque" value={form.estoque} onChange={handleChange} placeholder="Estoque" required />
           </div>
 
           <div>
-            <label
-              className="block text-gray-700 text-sm font-bold mb-2"
-              htmlFor="categoria"
-            >
-              Categoria
-            </label>
-            <select
-              name="categoria"
-              value={form.categoria}
-              onChange={handleChange}
-              className="w-full border rounded p-2"
-              required
-            >
+            <label className="block text-gray-700 text-sm font-bold mb-2">Categoria</label>
+            <select name="categoria" value={form.categoria} onChange={handleChange} className="w-full border rounded p-2" required>
               <option value="">Selecione</option>
               {categorias.map((cat) => (
-                <option value={cat} key={cat}>
-                  {cat}
-                </option>
+                <option value={cat} key={cat}>{cat}</option>
               ))}
             </select>
           </div>
 
-          {/* Inputs dinâmicos para medidas */}
-          {medidasAtuais.length > 0 && (
+          {/* Foto */}
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2">Foto do Produto</label>
+            <input type="file" name="foto" accept="image/*" onChange={handleChange} className="w-full border rounded p-2" required />
+          </div>
+
+          {/* Medidas por tamanho */}
+          {form.categoria && medidasAtuais.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-gray-700 font-semibold">Medidas</h2>
-              {medidasAtuais.map((medida) => (
-                <div key={medida}>
-                  <label
-                    className="block text-gray-700 text-sm mb-1"
-                    htmlFor={`medida_${medida}`}
-                  >
-                    {medida.charAt(0).toUpperCase() + medida.slice(1)}
-                  </label>
-                  <Input
-                    name={`medida_${medida}`}
-                    type="text"
-                    value={form.medidas[medida] || ""}
-                    onChange={handleChange}
-                    placeholder={`Informe ${medida}`}
-                    required
-                  />
+              <h2 className="text-gray-700 font-semibold">Medidas por Tamanho</h2>
+              {tamanhos.map((tamanho) => (
+                <div key={tamanho} className="border rounded p-2">
+                  <Button type="button" className="w-full mb-2 bg-white text-black hover:bg-white" onClick={() => toggleTamanho(tamanho)}>
+                    {tamanho} {tamanhoAberto === tamanho ? "" : ""}
+                  </Button>
+                  {tamanhoAberto === tamanho && (
+                    <div className="space-y-2">
+                      {/* medidas fixas */}
+                      {medidasAtuais.map((medida) => (
+                        <div key={medida} className="flex items-center gap-2">
+                          <Input
+                            name={`medida_${tamanho}_${medida}`}
+                            placeholder={`Informe ${medida}`}
+                            value={form.medidas[tamanho]?.[medida] || ""}
+                            onChange={handleChange}
+                            required
+                          />
+                          {/* <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeMedida(tamanho, medida)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button> */}
+                        </div>
+                      ))}
+
+                      {/* medidas extras */}
+                      {(medidasExtras[tamanho] || []).map((medida) => (
+                        <div key={medida} className="flex items-center gap-2">
+                          <Input
+                            name={`medida_${tamanho}_${medida}`}
+                            placeholder={`Informe ${medida}`}
+                            value={form.medidas[tamanho]?.[medida] || ""}
+                            onChange={handleChange}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeMedida(tamanho, medida)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setTamanhoSelecionado(tamanho)}
+                          >
+                            <Plus className="w-4 h-4 mr-1" /> Adicionar medida
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Nova medida para {tamanho}</DialogTitle>
+                          </DialogHeader>
+                          <Input
+                            value={novaMedida}
+                            onChange={(e) => setNovaMedida(e.target.value)}
+                            placeholder="Nome da medida"
+                          />
+                          <DialogFooter>
+                            <Button type="button" onClick={addMedida}>
+                              Adicionar
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
-
-          <div>
-            <label
-              className="block text-gray-700 text-sm font-bold mb-2"
-              htmlFor="foto"
-            >
-              Foto do Produto
-            </label>
-            <input
-              name="foto"
-              type="file"
-              accept="image/*"
-              onChange={handleChange}
-              className="w-full border rounded p-2"
-              required
-            />
-          </div>
-
           <p className="text-center text-sm text-gray-700">
-            De APENAS UM clique no botão abaixo para criar o produto e aguarde a
-            resposta!
+            Clique no botão abaixo para criar o produto e aguarde a resposta!
           </p>
-          <Button
-            className="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg w-full"
-            type="submit"
-          >
+
+          <Button type="submit" className="mb-20 bg-black text-white font-bold py-2 px-4 rounded-lg w-full">
             Criar Produto
           </Button>
         </form>
       </div>
 
-      {msg && <p className="mt-4 text-center text-sm text-gray-700">{msg}</p>}
+      {msg && <p className="mt-4 mb-20 text-center text-sm text-gray-700">{msg}</p>}
     </div>
   );
 }
