@@ -1,4 +1,4 @@
-import FormCreator from "@/components/formcreator";
+import FormCreator from "@/components/ProductForm";
 
 
 export default function Home() {
