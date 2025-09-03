@@ -43,7 +43,8 @@ export async function POST(request: Request) {
       category,
       hasPhoto: !!photoFile,
       sizesCount: Object.keys(sizesMetadata).length,
-    });
+    });   
+    // testet deles 
 
     if (!name || !description || !price) {
       return NextResponse.json({ error: "Campos obrigatórios faltando" }, { status: 400 });
